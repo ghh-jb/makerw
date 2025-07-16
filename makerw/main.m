@@ -19,6 +19,9 @@
 #include <sys/stat.h>
 #include <unistd.h>
 #include <sys/sysctl.h>
+#include <dlfcn.h>
+#import <sys/param.h>
+
 
 /*
 1. On initial overlay creation (first time):
@@ -43,6 +46,11 @@
 #define OVERLAY_CONFIG_PATH "/var/jb/overlays/overlay_list.conf"
 #define OVERLAY_STORE_PREFIX "/var/jb/overlays"
 
+#define LIBJAILBREAK_PATH ("/var/jb/usr/lib/libjailbreak.dylib")
+
+
+
+
 typedef struct {
     char target_path[PATH_MAX];
     char backing_store[PATH_MAX];
@@ -65,6 +73,53 @@ static bool is_symlink_pointing_to_store(const char *item_path, const char *stor
 static kern_return_t commit_item_recursive(const char *overlay_item, const char *store_item, const char *store_prefix);
 static kern_return_t unmount_if_mounted(const char *path);
 
+
+char *sandbox_extension_issue_file_to_self(const char *extension_class, const char *path, uint32_t flags);
+
+int (*jbclient_root_steal_ucred)(uint64_t ucredToSteal, uint64_t *orgUcred);
+
+void execute_unsandboxed(void (^block)(void))
+{
+    uint64_t credBackup = 0;
+    jbclient_root_steal_ucred(0, &credBackup);
+    block();
+    jbclient_root_steal_ucred(credBackup, NULL);
+}
+
+int mount_unsandboxed(const char *type, const char *dir, int flags, void *data) {
+    __block int ret = 0;
+    
+    if (access("/var/jb/.installed_dopamine", F_OK) == 0) {
+        void *libjailbreak = dlopen(LIBJAILBREAK_PATH, RTLD_NOW);
+        jbclient_root_steal_ucred = dlsym(libjailbreak, "jbclient_root_steal_ucred");
+        
+        execute_unsandboxed(^{
+            ret = mount(type, dir, flags, data);
+        });
+    } else {
+        ret = mount(type, dir, flags, data);
+    }
+    
+    return ret;
+}
+
+int unmount_unsandboxed(const char * dir, int flags) {
+    __block int ret = 0;
+    
+    if (access("/var/jb/.installed_dopamine", F_OK) == 0) {
+        void *libjailbreak = dlopen(LIBJAILBREAK_PATH, RTLD_NOW);
+        jbclient_root_steal_ucred = dlsym(libjailbreak, "jbclient_root_steal_ucred");
+        
+        execute_unsandboxed(^{
+            ret = unmount(dir, flags);
+        });
+    } else {
+        ret = unmount(dir, flags);
+    }
+    
+    return ret;
+}
+
 int commit_overlay_changes(const char *overlay_path) {
     if (overlay_path == NULL) {
         fprintf(stderr, "Error: overlay_path is NULL\n");
@@ -82,6 +137,7 @@ int commit_overlay_changes(const char *overlay_path) {
         return -1;
     }
     
+
     kern_return_t ret = commit_item_recursive(overlay_path, store_path, store_path);
     return (ret == 0) ? 0 : -1;
 }
@@ -147,7 +203,11 @@ kern_return_t create_or_remount_overlay_symlinks(const char *path) {
     args.max_pages = 1024 * 1024 * 1024 / getpagesize();
     args.max_nodes = UINT8_MAX;
     args.case_insensitive = 0;
-    if (mount("tmpfs", path, 0, &args) != 0) {
+    
+    
+
+    
+    if (mount_unsandboxed("tmpfs", path, 0, &args) != 0) {
         fprintf(stderr, "Failed to mount tmpfs on %s: %s\n", path, strerror(errno));
         return -1;
     }
@@ -155,7 +215,7 @@ kern_return_t create_or_remount_overlay_symlinks(const char *path) {
     kern_return_t ret = symlink_contents_of_dir(store_path, path);
     if (ret != 0) {
         fprintf(stderr, "Failed to symlink backing store contents.\n");
-        if (unmount(path, MNT_FORCE) != 0) {
+        if (unmount_unsandboxed(path, MNT_FORCE) != 0) {
             fprintf(stderr, "Warning: Failed to unmount after error: %s\n", strerror(errno));
         }
         
@@ -208,9 +268,13 @@ static bool is_mount_point(const char *path) {
 }
 
 static kern_return_t unmount_if_mounted(const char *path) {
+    
+    
+    
+    
     if (is_mount_point(path)) {
         fprintf(stdout, "Unmounting existing filesystem at %s\n", path);
-        if (unmount(path, MNT_FORCE) != 0) {
+        if (unmount_unsandboxed(path, MNT_FORCE) != 0) {
             fprintf(stderr, "Failed to unmount %s: %s\n", path, strerror(errno));
             return -1;
         }

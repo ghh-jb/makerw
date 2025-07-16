@@ -7,11 +7,14 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		047CF2042E27A1F100E4D211 /* Makefile in Sources */ = {isa = PBXBuildFile; fileRef = 047CF2032E27A1F100E4D211 /* Makefile */; };
+		047CF2052E27A1F100E4D211 /* Makefile in Sources */ = {isa = PBXBuildFile; fileRef = 047CF2032E27A1F100E4D211 /* Makefile */; };
 		5F27F6F92D719AF70087C81F /* main.m in Sources */ = {isa = PBXBuildFile; fileRef = 5F3715F82D09AAED003DF348 /* main.m */; };
 		5FE773292DD4B3E000F5F522 /* main.m in Sources */ = {isa = PBXBuildFile; fileRef = 5F3715F82D09AAED003DF348 /* main.m */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
+		047CF2032E27A1F100E4D211 /* Makefile */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.make; path = Makefile; sourceTree = "<group>"; };
 		5F3715F82D09AAED003DF348 /* main.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = main.m; sourceTree = "<group>"; };
 		5FE020792BFA862500D131E0 /* ios_deploy.py */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.script.python; path = ios_deploy.py; sourceTree = "<group>"; };
 		5FE0207B2BFA862B00D131E0 /* entitlements.xml */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.xml; path = entitlements.xml; sourceTree = "<group>"; };
@@ -41,6 +44,7 @@
 			isa = PBXGroup;
 			children = (
 				5FE020792BFA862500D131E0 /* ios_deploy.py */,
+				047CF2032E27A1F100E4D211 /* Makefile */,
 				5FE0207B2BFA862B00D131E0 /* entitlements.xml */,
 				5FE020832BFA86C400D131E0 /* makerw */,
 				5F8549A92AD9E03E006D8CCD /* Products */,
@@ -196,6 +200,7 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				047CF2042E27A1F100E4D211 /* Makefile in Sources */,
 				5F27F6F92D719AF70087C81F /* main.m in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
@@ -204,6 +209,7 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				047CF2052E27A1F100E4D211 /* Makefile in Sources */,
 				5FE773292DD4B3E000F5F522 /* main.m in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
