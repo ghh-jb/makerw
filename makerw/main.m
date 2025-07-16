@@ -201,7 +201,7 @@ kern_return_t create_or_remount_overlay_symlinks(const char *path) {
     } args;
     
     args.max_pages = 1024 * 1024 * 1024 / getpagesize();
-    args.max_nodes = UINT8_MAX;
+    args.max_nodes = UINT16_MAX;
     args.case_insensitive = 0;
     
     
@@ -765,8 +765,6 @@ static kern_return_t commit_item_recursive(const char *overlay_item, const char 
         
         if (copyfile(overlay_item, store_item, cst, COPYFILE_ALL) != 0) {
             fprintf(stderr, "Failed to copy '%s' -> '%s': %s\n", overlay_item, store_item, strerror(errno));
-            copyfile_state_free(cst);
-            return -1;
         }
         copyfile_state_free(cst);
         
@@ -785,7 +783,7 @@ static kern_return_t commit_item_recursive(const char *overlay_item, const char 
 
 int main(int argc, char *argv[]) {
     if (argc < 2) {
-        fprintf(stderr, "Usage:\n");
+        fprintf(stderr, "\x1b[1;32mUsage:\x1b[0m\n");
         fprintf(stderr, "  %s create <dir_to_make_rw>\n", argv[0]);
         fprintf(stderr, "  %s commit <dir_to_commit>\n", argv[0]);
         fprintf(stderr, "  %s reapply\n", argv[0]);
