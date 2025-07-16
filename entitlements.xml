@@ -7,7 +7,6 @@
     <key>com.apple.security.iokit-user-client-class</key>
     <array>
         <string>IOSurfaceRootUserClient</string>
-        <string>AppleAPFSUserClient</string>
     </array>
     <key>com.apple.private.security.no-sandbox</key>
     <true/>
