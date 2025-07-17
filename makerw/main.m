@@ -120,6 +120,26 @@ int unmount_unsandboxed(const char * dir, int flags) {
     return ret;
 }
 
+void printf_error(char *format, ...) {
+    printf("\x1b[1;31m");
+    va_list args;
+    va_start(args, format);
+    vprintf(format, args);
+    va_end(args);
+    printf("\x1b[0m");
+    return;
+}
+
+void printf_success(char* format, ...) {
+    printf("\x1b[1;32m");
+    va_list args;
+    va_start(args, format);
+    vprintf(format, args);
+    va_end(args);
+    printf("\x1b[0m");
+    return;
+}
+
 int commit_overlay_changes(const char *overlay_path) {
     if (overlay_path == NULL) {
         fprintf(stderr, "Error: overlay_path is NULL\n");
@@ -330,6 +350,9 @@ static bool dir_exists_and_nonempty(const char *dir) {
 }
 
 static kern_return_t copy_dir_recursive(const char *src, const char *dst) {
+    // TODO:
+    // Handle simlinks correctl
+    
     if (src == NULL || dst == NULL) {
         return -1;
     }
@@ -783,54 +806,54 @@ static kern_return_t commit_item_recursive(const char *overlay_item, const char 
 
 int main(int argc, char *argv[]) {
     if (argc < 2) {
-        fprintf(stderr, "\x1b[1;32mUsage:\x1b[0m\n");
-        fprintf(stderr, "  %s create <dir_to_make_rw>\n", argv[0]);
-        fprintf(stderr, "  %s commit <dir_to_commit>\n", argv[0]);
-        fprintf(stderr, "  %s reapply\n", argv[0]);
+        printf_success("Usage:\n");
+        printf("  %s create <dir_to_make_rw>\n", argv[0]);
+        printf("  %s commit <dir_to_commit>\n", argv[0]);
+        printf("  %s reapply\n", argv[0]);
         return 1;
     }
     
     if (strcmp(argv[1], "create") == 0) {
         if (argc < 3) {
-            fprintf(stderr, "Missing path argument.\n");
+            printf_error("[-] Missing path argument.\n");
             return 1;
         }
         
         const char *path = argv[2];
         int rc = create_or_remount_overlay_symlinks(path);
         if (rc == 0) {
-            printf("Overlay created on %s\n", path);
+            printf_success("[+] Overlay created on %s\n", path);
         }
         else {
-            printf("Overlay creation failed.\n");
+            printf_error("[-] Overlay creation failed.\n");
         }
     }
     else if (strcmp(argv[1], "commit") == 0) {
         if (argc < 3) {
-            fprintf(stderr, "Missing path argument.\n");
+            printf_error("[-] Missing path argument.\n");
             return 1;
         }
         
         const char *path = argv[2];
         int rc = commit_overlay_changes(path);
         if (rc == 0) {
-            printf("Overlay changes committed for %s\n", path);
+            printf_success("[+] Overlay changes committed for %s\n", path);
         }
         else {
-            printf("Overlay commit failed.\n");
+            printf_error("[-] Overlay commit failed.\n");
         }
     }
     else if (strcmp(argv[1], "reapply") == 0) {
         int rc = reapply_all_overlays();
         if (rc == 0) {
-            printf("All overlays reapplied.\n");
+            printf_success("[+] All overlays reapplied.\n");
         }
         else {
-            printf("Failed to reapply overlays.\n");
+            printf_error("[-] Failed to reapply overlays.\n");
         }
     }
     else {
-        fprintf(stderr, "Unknown command.\n");
+        printf_error("[-] Unknown command.\n");
     }
 
     return 0;
