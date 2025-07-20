@@ -227,7 +227,8 @@ kern_return_t create_or_remount_overlay_symlinks(const char *path) {
     
 
     
-    if (mount_unsandboxed("tmpfs", path, 0, &args) != 0) {
+    if (mount_unsandboxed("tmpfs", path, MNT_FORCE, &args) != 0) { 
+        // MNT_FORCE so it can override bindmounts in /usr for example
         fprintf(stderr, "Failed to mount tmpfs on %s: %s\n", path, strerror(errno));
         return -1;
     }
@@ -351,7 +352,7 @@ static bool dir_exists_and_nonempty(const char *dir) {
 
 static kern_return_t copy_dir_recursive(const char *src, const char *dst) {
     // TODO:
-    // Handle simlinks correctl
+    // Handle relative symlinks correctly
     
     if (src == NULL || dst == NULL) {
         return -1;
@@ -407,6 +408,22 @@ static kern_return_t copy_dir_recursive(const char *src, const char *dst) {
                 return ret;
             }
         }
+        if (S_ISLNK(st.st_mode)) {
+            // Handle absolute symbolic links for now
+            char link_target[PATH_MAX];
+            ssize_t len = readlink(src_path, link_target, sizeof(link_target) - 1);
+            if (len == -1) {
+                fprintf(stderr, "Failed to read link\n");
+                continue;
+            }
+            link_target[len] = '\0';
+            
+            unlink(dst_path);
+            
+            if (symlink(link_target, dst_path) != 0) {
+                fprintf(stderr,"Failed to create symlink\n");
+            }
+        }
         else {
             copyfile_state_t cst = copyfile_state_alloc();
             if (cst == NULL) {
@@ -416,10 +433,10 @@ static kern_return_t copy_dir_recursive(const char *src, const char *dst) {
             }
             
             if (copyfile(src_path, dst_path, cst, COPYFILE_ALL) != 0) {
-                fprintf(stderr, "Failed copy '%s' -> '%s': %s\n", src_path, dst_path, strerror(errno));
+                fprintf(stderr, "Failed copy '%s' -> '%s': %s, continuing\n", src_path, dst_path, strerror(errno));
                 copyfile_state_free(cst);
                 closedir(dir);
-                return -1;
+                return -1; // Is this needed? Maybe continue copying?
             }
             copyfile_state_free(cst);
         }
