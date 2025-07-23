@@ -22,7 +22,6 @@
 #include <dlfcn.h>
 #import <sys/param.h>
 
-
 /*
 1. On initial overlay creation (first time):
     a. Copy the entire read-only directory (e.g. /usr/lib) to a backing store (/var/jb/overlays/usr/lib).
@@ -182,7 +181,7 @@ char* toRealpath(const char *path) {
     struct stat st;
     if (lstat(normal, &st) == 0 && S_ISLNK(st.st_mode)) {
         // Is this a symlink?
-        char *finalPath = toRealpathc(normal); // Recursive call until we hit the bottom
+        char *finalPath = toRealpath(normal); // Recursive call until we hit the bottom
         free(normal);
         return finalPath;
     }
