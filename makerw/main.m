@@ -46,7 +46,7 @@
 #define OVERLAY_CONFIG_PATH "/var/jb/overlays/overlay_list.conf"
 #define OVERLAY_STORE_PREFIX "/var/jb/overlays"
 
-#define LIBJAILBREAK_PATH ("/var/jb/usr/lib/libjailbreak.dylib")
+#define LIBJAILBREAK_PATH ("/var/jb/basebin/libjailbreak.dylib")
 
 
 
@@ -77,6 +77,8 @@ static kern_return_t unmount_if_mounted(const char *path);
 char *sandbox_extension_issue_file_to_self(const char *extension_class, const char *path, uint32_t flags);
 
 int (*jbclient_root_steal_ucred)(uint64_t ucredToSteal, uint64_t *orgUcred);
+
+
 
 void execute_unsandboxed(void (^block)(void))
 {
@@ -139,6 +141,55 @@ void printf_success(char* format, ...) {
     printf("\x1b[0m");
     return;
 }
+
+// symlink handler
+char* toRealpath(const char *path) {
+    char targetPath[PATH_MAX];
+    char absPath[PATH_MAX];
+    char *resolvedPath = NULL;
+    
+    ssize_t len = readlink(path, targetPath, sizeof(targetPath) - 1);
+    if (len == -1) {
+        printf("FAIL: readlink failed");
+        return NULL;
+    }
+    targetPath[len] = '\0';
+    
+    if (targetPath[0] == '/') {
+        return strdup(targetPath);
+    }
+    
+    char symlinkDir[PATH_MAX];
+    strncpy(symlinkDir, path, sizeof(symlinkDir));
+    char *lastSlash = strrchr(symlinkDir, '/');
+    if (lastSlash) {
+        *lastSlash = '\0';
+    } else {
+        strcpy(symlinkDir, "."); 
+    }
+    
+    if (snprintf(absPath, sizeof(absPath), "%s/%s", symlinkDir, targetPath) >= sizeof(absPath)) {
+        printf("FAIL: Path too long\n");
+        return NULL;
+    }
+    
+    char *normal = realpath(absPath, NULL);
+    if (!normal) {
+        printf("FAIL: realpath failed");
+        return NULL;
+    }
+    
+    struct stat st;
+    if (lstat(normal, &st) == 0 && S_ISLNK(st.st_mode)) {
+        // Is this a symlink?
+        char *finalPath = toRealpathc(normal); // Recursive call until we hit the bottom
+        free(normal);
+        return finalPath;
+    }
+    
+    return normal;
+}
+
 
 int commit_overlay_changes(const char *overlay_path) {
     if (overlay_path == NULL) {
@@ -409,18 +460,15 @@ static kern_return_t copy_dir_recursive(const char *src, const char *dst) {
             }
         }
         if (S_ISLNK(st.st_mode)) {
-            // Handle absolute symbolic links for now
-            char link_target[PATH_MAX];
-            ssize_t len = readlink(src_path, link_target, sizeof(link_target) - 1);
-            if (len == -1) {
-                fprintf(stderr, "Failed to read link\n");
-                continue;
-            }
-            link_target[len] = '\0';
+            // Handle absolute symbolic links
+            // To handle relative - convert to absolute, then fallback
+
+            char* real_path = toRealpath(src_path);
+            printf_success("[+] realpath: %s\n", real_path);
             
             unlink(dst_path);
-            
-            if (symlink(link_target, dst_path) != 0) {
+
+            if (symlink(real_path, dst_path) != 0) {
                 fprintf(stderr,"Failed to create symlink\n");
             }
         }
