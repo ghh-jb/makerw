@@ -6,7 +6,7 @@ include $(THEOS)/makefiles/common.mk
 TOOL_NAME = makerw
 
 makerw_FILES = main.m
-makerw_CFLAGS = -fobjc-arc
+makerw_CFLAGS = -fobjc-arc -Wno-unused-variable
 makerw_CODESIGN_FLAGS = -S./entitlements.xml
 
 
