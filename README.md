@@ -1,6 +1,8 @@
 # MakeRW
 
 A tool to make read-only paths writable without modifying the rootfs. Supports persisting changes across reboots.
+- Support for Dopamine jailbreak was added
+- Support for absolute and relative symlinks copy was added
 
 ## Usage
 
